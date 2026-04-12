@@ -2,37 +2,28 @@
 
 ## Project Summary
 
-In this project you will build and explain a small music recommender system.
-
-Your goal is to:
-
-- Represent songs and a user "taste profile" as data
-- Design a scoring rule that turns that data into recommendations
-- Evaluate what your system gets right and wrong
-- Reflect on how this mirrors real world AI recommenders
-
-Replace this paragraph with your own summary of what your version does.
+VibeFinder 1.0 is a content-based music recommender built in Python. It takes a user's preferred genre, mood, energy level, and acoustic taste, then scores every song in an 18-song catalog using a weighted formula. The top 5 matches are returned with a score and a plain-language explanation of why each song was recommended. The project also documents where the system works well, where it fails, and what that reveals about how real recommendation algorithms behave.
 
 ---
 
 ## How The System Works
 
-Real-world platforms like Spotify and YouTube predict what you'll enjoy by analyzing patterns — either from what songs you and similar users have listened to (collaborative filtering), or from the attributes of the songs themselves (content-based filtering). At scale, these systems process millions of data points per second, combining listening history, skip behavior, time of day, and audio features to rank an enormous catalog down to a short list. This simulation focuses on the content-based approach: it compares the attributes of each song directly against a user's taste profile and assigns a relevance score, then surfaces the top matches.
+Real-world platforms like Spotify and YouTube predict what you'll enjoy by analyzing patterns. They either look at what songs you and similar users have listened to (collaborative filtering), or they look at the attributes of the songs themselves (content-based filtering). At scale, these systems process millions of data points per second, combining listening history, skip behavior, time of day, and audio features to rank an enormous catalog down to a short list. This simulation focuses on the content-based approach: it compares the attributes of each song directly against a user's taste profile and assigns a relevance score, then surfaces the top matches.
 
 This version prioritizes **genre** and **mood** as the strongest signals of musical taste, uses **energy** and **valence** to fine-tune matches based on intensity and emotional positivity, and factors in **acousticness** for users who prefer organic or produced sounds. Songs are scored individually, then ranked highest-to-lowest to produce the final recommendation list.
 
 **`Song` features used:**
-- `genre` — categorical (e.g., pop, lofi, rock)
-- `mood` — categorical (e.g., happy, chill, intense)
-- `energy` — float 0.0–1.0, intensity of the track
-- `valence` — float 0.0–1.0, musical positivity
-- `acousticness` — float 0.0–1.0, acoustic vs. produced sound
+- `genre`: categorical (e.g., pop, lofi, rock)
+- `mood`: categorical (e.g., happy, chill, intense)
+- `energy`: float 0.0 to 1.0, intensity of the track
+- `valence`: float 0.0 to 1.0, musical positivity
+- `acousticness`: float 0.0 to 1.0, acoustic vs. produced sound
 
 **`UserProfile` fields used:**
-- `favorite_genre` — the genre the user most prefers
-- `favorite_mood` — the mood the user is looking for
-- `target_energy` — the energy level the user wants (0.0–1.0)
-- `likes_acoustic` — boolean preference for acoustic sound
+- `favorite_genre`: the genre the user most prefers
+- `favorite_mood`: the mood the user is looking for
+- `target_energy`: the energy level the user wants (0.0 to 1.0)
+- `likes_acoustic`: boolean preference for acoustic sound
 
 ---
 
@@ -47,7 +38,7 @@ user_prefs = {
 }
 ```
 
-This profile can clearly differentiate between "intense rock" (wrong genre, wrong mood despite similar energy) and "chill lofi" (wrong genre, wrong mood, wrong energy) — both would score low. A happy pop track with high energy would score highest.
+This profile can clearly differentiate between "intense rock" (wrong genre, wrong mood despite similar energy) and "chill lofi" (wrong genre, wrong mood, wrong energy). Both would score low. A happy pop track with high energy would score highest.
 
 ---
 
@@ -65,7 +56,7 @@ For each song in the catalog, compute a relevance score:
 
 **Max possible score: ~8.0**
 
-Genre is weighted highest (3.0) because it is the broadest filter of taste — a country fan is unlikely to enjoy metal regardless of mood. Mood is second (2.0) because it reflects what the user wants right now. Energy and valence use proximity scoring so a song that is *close* to the target scores better than one that is simply high or low.
+Genre is weighted highest (3.0) because it is the broadest filter of taste. A country fan is unlikely to enjoy metal regardless of mood. Mood is second (2.0) because it reflects what the user wants right now. Energy and valence use proximity scoring so a song that is close to the target scores better than one that is simply high or low.
 
 **Data flow:**
 
@@ -82,10 +73,10 @@ flowchart LR
 
 ## Known Biases in This Design
 
-- **Genre lock-in:** A 3.0 weight on genre means a perfect mood+energy match in the wrong genre will never beat a mediocre same-genre song. Users with niche genres (classical, blues) will see fewer matches in a small catalog.
-- **Filter bubble risk:** Running this repeatedly reinforces the same genre/mood cluster — the system never surprises the user with something outside their stated taste.
+- **Genre lock-in:** A 3.0 weight on genre means a perfect mood and energy match in the wrong genre will never beat a mediocre same-genre song. Users with niche genres (classical, blues) will see fewer matches in a small catalog.
+- **Filter bubble risk:** Running this repeatedly reinforces the same genre/mood cluster. The system never surprises the user with something outside their stated taste.
 - **Catalog imbalance:** With 18 songs, some genres have only 1 entry, so users of those genres get almost no recommendations.
-- **No behavioral signal:** The system treats a brand-new user and a long-time user identically — it has no memory of what was skipped or replayed.
+- **No behavioral signal:** The system treats a brand-new user and a long-time user identically. It has no memory of what was skipped or replayed.
 
 ---
 
@@ -159,7 +150,7 @@ You can add more tests in `tests/test_recommender.py`.
 For the pop/happy profile, Rooftop Lights jumped from #3 to #2, overtaking Gym Hero. Rooftop Lights has energy 0.76 which is closer to the 0.9 target than Gym Hero's 0.93 (which overshoots). When energy matters more, proximity beats a genre match. Takeaway: weight choices are judgment calls, not facts.
 
 **Edge Case — Conflicting prefs (ambient + hype + energy 0.92):**
-Spacewalk Thoughts ranked #1 despite having energy 0.28 — opposite of the 0.92 target — purely because of the genre match (+3.0). This is the system's biggest failure mode: for rare genres, the genre weight dominates and ignores everything else.
+Spacewalk Thoughts ranked #1 despite having energy 0.28, which is the opposite of the 0.92 target, purely because of the genre match (+3.0). This is the system's biggest failure mode: for rare genres, the genre weight dominates and ignores everything else.
 
 **Intense Rock profile:**
 Iron Curtain (metal, intense) ranked below Gym Hero (pop, intense) even though metal is closer to rock than pop. The reason: valence. Gym Hero's valence (0.77) is closer to the default 0.7 target than Iron Curtain's (0.21). This shows valence can produce counter-intuitive results when genre is absent.
