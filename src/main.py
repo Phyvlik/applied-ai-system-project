@@ -4,7 +4,8 @@ Run with: python -m src.main
 """
 
 import os
-from src.recommender import load_songs, recommend_songs
+from tabulate import tabulate
+from src.recommender import load_songs, recommend_songs, SCORING_MODES
 
 
 PROFILES = {
@@ -13,44 +14,77 @@ PROFILES = {
         "mood": "happy",
         "energy": 0.9,
         "likes_acoustic": False,
+        "detailed_mood": "euphoric",
+        "preferred_decade": "2020s",
+        "avoid_explicit": False,
+        "prefers_instrumental": False,
     },
     "Chill Lofi": {
         "genre": "lofi",
         "mood": "chill",
         "energy": 0.38,
         "likes_acoustic": True,
+        "detailed_mood": "mellow",
+        "preferred_decade": "2020s",
+        "avoid_explicit": False,
+        "prefers_instrumental": True,
     },
     "Intense Rock": {
         "genre": "rock",
         "mood": "intense",
         "energy": 0.95,
         "likes_acoustic": False,
+        "detailed_mood": "aggressive",
+        "preferred_decade": "2010s",
+        "avoid_explicit": False,
+        "prefers_instrumental": False,
     },
-    "Edge Case — Conflicting Prefs (ambient + hype + high energy)": {
+    "Edge Case — Conflicting Prefs": {
         "genre": "ambient",
         "mood": "hype",
         "energy": 0.92,
         "likes_acoustic": True,
+        "detailed_mood": "euphoric",
+        "preferred_decade": "2020s",
+        "avoid_explicit": True,
+        "prefers_instrumental": False,
     },
 }
 
 
-def print_profile_results(name: str, prefs: dict, songs: list) -> None:
-    separator = "=" * 60
+def print_profile_results(name: str, prefs: dict, songs: list, mode: str) -> None:
+    separator = "=" * 70
     print(f"\n{separator}")
-    print(f"  Profile: {name}")
+    print(f"  Profile : {name}")
+    print(f"  Mode    : {mode}")
     print(separator)
-    print(f"  genre={prefs['genre']}  mood={prefs['mood']}  "
-          f"energy={prefs['energy']}  likes_acoustic={prefs['likes_acoustic']}")
+    print(f"  genre={prefs['genre']}  mood={prefs['mood']}  energy={prefs['energy']}")
+    print(f"  detailed_mood={prefs.get('detailed_mood','')}  "
+          f"decade={prefs.get('preferred_decade','')}  "
+          f"avoid_explicit={prefs.get('avoid_explicit',False)}")
     print(f"{separator}\n")
 
-    recommendations = recommend_songs(prefs, songs, k=5)
+    recommendations = recommend_songs(prefs, songs, k=5, mode=mode, diversity=True)
+
+    # Challenge 4: tabulate output
+    table_rows = []
     for i, (song, score, explanation) in enumerate(recommendations, start=1):
-        print(f"  #{i}  {song['title']} by {song['artist']}")
-        print(f"       Genre: {song['genre']} | Mood: {song['mood']} | Energy: {song['energy']}")
-        print(f"       Score: {score:.2f}")
-        print(f"       Why:   {explanation}")
-        print()
+        table_rows.append([
+            f"#{i}",
+            song["title"],
+            song["artist"],
+            song["genre"],
+            song["mood"],
+            song["energy"],
+            song["popularity"],
+            f"{score:.2f}",
+            explanation,
+        ])
+
+    headers = ["#", "Title", "Artist", "Genre", "Mood", "Energy", "Pop", "Score", "Why"]
+    print(tabulate(table_rows, headers=headers, tablefmt="simple",
+                   maxcolwidths=[3, 22, 16, 10, 8, 6, 4, 6, 55]))
+    print()
 
 
 def main() -> None:
@@ -59,8 +93,10 @@ def main() -> None:
 
     songs = load_songs(csv_path)
 
+    # Run each profile in all 3 scoring modes to show the difference
     for name, prefs in PROFILES.items():
-        print_profile_results(name, prefs, songs)
+        for mode in SCORING_MODES:
+            print_profile_results(name, prefs, songs, mode)
 
 
 if __name__ == "__main__":
