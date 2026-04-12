@@ -157,6 +157,36 @@ Iron Curtain (metal, intense) ranked below Gym Hero (pop, intense) even though m
 
 ---
 
+## Optional Extensions
+
+**Challenge 1: Advanced Song Features**
+
+Added 5 new attributes to `data/songs.csv` and the scoring logic:
+- `popularity` (0-100): songs rated 75+ earn a small bonus
+- `release_decade`: users can specify a preferred decade (e.g., 2020s) for a match bonus
+- `detailed_mood`: fine-grained mood tags (euphoric, mellow, aggressive, dreamy, nostalgic) scored on top of the base mood match
+- `explicit`: users can set `avoid_explicit=True` to apply a -2.0 penalty to explicit songs
+- `instrumental`: users who prefer instrumental tracks get a +0.5 bonus on matching songs
+
+**Challenge 2: Multiple Scoring Modes**
+
+Three scoring modes are available, each shifting which feature is weighted highest:
+- `genre-first`: genre weight 3.0 (default behavior)
+- `mood-first`: mood weight 3.0, useful for users who care more about feel than category
+- `energy-focused`: energy weight 3.0, useful for activity-based listening (workout, study, sleep)
+
+Switch modes by passing `mode="mood-first"` to `recommend_songs()`.
+
+**Challenge 3: Diversity Penalty**
+
+`apply_diversity_penalty()` prevents the top 5 from being dominated by one artist or genre. It limits results to 1 song per artist and 2 songs per genre. Songs that exceed the limit are demoted with a penalty note in their score explanation.
+
+**Challenge 4: Tabulate Output**
+
+Terminal output is now formatted as a clean table using the `tabulate` library, showing title, artist, genre, mood, energy, popularity, score, and the full "Why" explanation for each recommendation.
+
+---
+
 ## Limitations and Risks
 
 - Works on a catalog of 18 songs, so rare genres like blues, classical, and folk have only one match
