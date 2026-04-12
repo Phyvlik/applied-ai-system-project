@@ -126,10 +126,30 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Terminal Output
 
-Running `python -m src.main` with the default `pop/happy/0.8-energy` profile:
+### Phase 3 — Default Profile (pop / happy / 0.8 energy)
 
 ![Terminal output part 1](assets/step5image1.png)
 ![Terminal output part 2](assets/step5image2.png)
+
+---
+
+### Phase 4 — Stress Test: Multiple Profiles
+
+**Profile 1: High-Energy Pop**
+
+![High-Energy Pop profile results](assets/phase4_profile1_highenergypop.png)
+
+**Profile 2: Chill Lofi**
+
+![Chill Lofi profile results](assets/phase4_profile2_chilllofi.png)
+
+**Profile 3: Intense Rock**
+
+![Intense Rock profile results](assets/phase4_profile3_intenserock.png)
+
+**Profile 4: Edge Case — Conflicting Prefs (ambient + hype + high energy)**
+
+![Edge case profile results](assets/phase4_profile4_edgecase.png)
 
 ---
 
