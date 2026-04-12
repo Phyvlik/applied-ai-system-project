@@ -124,6 +124,15 @@ You can add more tests in `tests/test_recommender.py`.
 
 ---
 
+## Terminal Output
+
+Running `python -m src.main` with the default `pop/happy/0.8-energy` profile:
+
+![Terminal output part 1](assets/step5image1.png)
+![Terminal output part 2](assets/step5image2.png)
+
+---
+
 ## Experiments You Tried
 
 Use this section to document the experiments you ran. For example:
