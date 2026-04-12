@@ -182,14 +182,11 @@ You will go deeper on this in your model card.
 
 ## Reflection
 
-Read and complete `model_card.md`:
+[**Full Model Card**](model_card.md)
 
-[**Model Card**](model_card.md)
+Building VibeFinder showed that a recommendation system is just a set of weighted decisions — and the weights are judgment calls, not facts. The genre weight (3.0) made the system feel intuitive for pop and lofi users, but completely broke for the edge case profile where a quiet ambient track ranked #1 for a user who wanted high-energy hype music. The system was doing the math correctly; the math just didn't match reality.
 
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+The most important insight about bias: this system doesn't need malicious intent to be unfair. It over-serves pop and lofi users simply because those genres have the most songs in the catalog. Blues, classical, and folk users get one real match and four filler recommendations. That kind of imbalance shows up in real platforms too — niche genres and non-Western music are historically underrepresented in training data, which means the algorithm deprioritizes them not by choice but by default.
 
 
 ---
