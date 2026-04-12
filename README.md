@@ -135,11 +135,14 @@ Running `python -m src.main` with the default `pop/happy/0.8-energy` profile:
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+**Weight Shift — Genre halved (3.0 → 1.5), Energy doubled (1.5 → 3.0):**
+For the pop/happy profile, Rooftop Lights jumped from #3 to #2, overtaking Gym Hero. Rooftop Lights has energy 0.76 which is closer to the 0.9 target than Gym Hero's 0.93 (which overshoots). When energy matters more, proximity beats a genre match. Takeaway: weight choices are judgment calls, not facts.
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+**Edge Case — Conflicting prefs (ambient + hype + energy 0.92):**
+Spacewalk Thoughts ranked #1 despite having energy 0.28 — opposite of the 0.92 target — purely because of the genre match (+3.0). This is the system's biggest failure mode: for rare genres, the genre weight dominates and ignores everything else.
+
+**Intense Rock profile:**
+Iron Curtain (metal, intense) ranked below Gym Hero (pop, intense) even though metal is closer to rock than pop. The reason: valence. Gym Hero's valence (0.77) is closer to the default 0.7 target than Iron Curtain's (0.21). This shows valence can produce counter-intuitive results when genre is absent.
 
 ---
 
