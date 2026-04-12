@@ -168,15 +168,13 @@ Iron Curtain (metal, intense) ranked below Gym Hero (pop, intense) even though m
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
+- Works on a catalog of 18 songs, so rare genres like blues, classical, and folk have only one match
+- The genre weight is strong enough to override every other signal, including energy and mood
+- No "sad" mood exists in the dataset, so users who want melancholic music get ignored
+- Valence scoring can produce unexpected rankings when two songs have no genre or mood match
+- The system has no memory and cannot learn from skips, replays, or feedback
 
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+For a full breakdown, see the [Model Card](model_card.md).
 
 ---
 
