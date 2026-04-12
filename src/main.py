@@ -1,32 +1,37 @@
 """
 Command line runner for the Music Recommender Simulation.
-
-This file helps you quickly run and test your recommender.
-
-You will implement the functions in recommender.py:
-- load_songs
-- score_song
-- recommend_songs
+Run with: python -m src.main
 """
 
-from recommender import load_songs, recommend_songs
+import os
+from src.recommender import load_songs, recommend_songs
 
 
 def main() -> None:
-    songs = load_songs("data/songs.csv") 
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    csv_path = os.path.join(base_dir, "data", "songs.csv")
 
-    # Starter example profile
-    user_prefs = {"genre": "pop", "mood": "happy", "energy": 0.8}
+    songs = load_songs(csv_path)
+
+    user_prefs = {
+        "genre": "pop",
+        "mood": "happy",
+        "energy": 0.8,
+        "likes_acoustic": False,
+    }
+
+    print("\n--- User Profile ---")
+    for key, val in user_prefs.items():
+        print(f"  {key}: {val}")
 
     recommendations = recommend_songs(user_prefs, songs, k=5)
 
-    print("\nTop recommendations:\n")
-    for rec in recommendations:
-        # You decide the structure of each returned item.
-        # A common pattern is: (song, score, explanation)
-        song, score, explanation = rec
-        print(f"{song['title']} - Score: {score:.2f}")
-        print(f"Because: {explanation}")
+    print("\n--- Top Recommendations ---\n")
+    for i, (song, score, explanation) in enumerate(recommendations, start=1):
+        print(f"#{i}  {song['title']} by {song['artist']}")
+        print(f"    Genre: {song['genre']} | Mood: {song['mood']} | Energy: {song['energy']}")
+        print(f"    Score: {score:.2f}")
+        print(f"    Why:   {explanation}")
         print()
 
 

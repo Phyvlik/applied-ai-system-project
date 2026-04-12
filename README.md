@@ -17,17 +17,75 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+Real-world platforms like Spotify and YouTube predict what you'll enjoy by analyzing patterns — either from what songs you and similar users have listened to (collaborative filtering), or from the attributes of the songs themselves (content-based filtering). At scale, these systems process millions of data points per second, combining listening history, skip behavior, time of day, and audio features to rank an enormous catalog down to a short list. This simulation focuses on the content-based approach: it compares the attributes of each song directly against a user's taste profile and assigns a relevance score, then surfaces the top matches.
 
-Some prompts to answer:
+This version prioritizes **genre** and **mood** as the strongest signals of musical taste, uses **energy** and **valence** to fine-tune matches based on intensity and emotional positivity, and factors in **acousticness** for users who prefer organic or produced sounds. Songs are scored individually, then ranked highest-to-lowest to produce the final recommendation list.
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+**`Song` features used:**
+- `genre` — categorical (e.g., pop, lofi, rock)
+- `mood` — categorical (e.g., happy, chill, intense)
+- `energy` — float 0.0–1.0, intensity of the track
+- `valence` — float 0.0–1.0, musical positivity
+- `acousticness` — float 0.0–1.0, acoustic vs. produced sound
 
-You can include a simple diagram or bullet list if helpful.
+**`UserProfile` fields used:**
+- `favorite_genre` — the genre the user most prefers
+- `favorite_mood` — the mood the user is looking for
+- `target_energy` — the energy level the user wants (0.0–1.0)
+- `likes_acoustic` — boolean preference for acoustic sound
+
+---
+
+## Example User Profile
+
+```python
+user_prefs = {
+    "genre": "pop",
+    "mood": "happy",
+    "energy": 0.8,       # wants high-energy tracks
+    "likes_acoustic": False
+}
+```
+
+This profile can clearly differentiate between "intense rock" (wrong genre, wrong mood despite similar energy) and "chill lofi" (wrong genre, wrong mood, wrong energy) — both would score low. A happy pop track with high energy would score highest.
+
+---
+
+## Algorithm Recipe
+
+For each song in the catalog, compute a relevance score:
+
+| Rule | Points |
+|---|---|
+| Genre matches `favorite_genre` | +3.0 |
+| Mood matches `favorite_mood` | +2.0 |
+| Energy proximity: `1 - abs(song.energy - target_energy)` × 1.5 | 0.0–1.5 |
+| Valence proximity: `1 - abs(song.valence - target_valence)` × 1.0 | 0.0–1.0 |
+| Acousticness bonus if `likes_acoustic=True` and `acousticness > 0.6` | +0.5 |
+
+**Max possible score: ~8.0**
+
+Genre is weighted highest (3.0) because it is the broadest filter of taste — a country fan is unlikely to enjoy metal regardless of mood. Mood is second (2.0) because it reflects what the user wants right now. Energy and valence use proximity scoring so a song that is *close* to the target scores better than one that is simply high or low.
+
+**Data flow:**
+
+```mermaid
+flowchart LR
+    A[User Profile\ngenre · mood · energy] --> B[Score Each Song\nin songs.csv]
+    B --> C{score_song}
+    C --> D[genre match +3.0\nmood match +2.0\nenergy proximity ×1.5\nvalence proximity ×1.0\nacoustic bonus +0.5]
+    D --> E[Ranked List\nhighest score first]
+    E --> F[Top K\nRecommendations]
+```
+
+---
+
+## Known Biases in This Design
+
+- **Genre lock-in:** A 3.0 weight on genre means a perfect mood+energy match in the wrong genre will never beat a mediocre same-genre song. Users with niche genres (classical, blues) will see fewer matches in a small catalog.
+- **Filter bubble risk:** Running this repeatedly reinforces the same genre/mood cluster — the system never surprises the user with something outside their stated taste.
+- **Catalog imbalance:** With 18 songs, some genres have only 1 entry, so users of those genres get almost no recommendations.
+- **No behavioral signal:** The system treats a brand-new user and a long-time user identically — it has no memory of what was skipped or replayed.
 
 ---
 
