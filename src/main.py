@@ -1,11 +1,12 @@
 """
-Command line runner for the Music Recommender Simulation.
+Command line runner for VibeFinder - Music Recommender Simulation.
 Run with: python -m src.main
 """
 
 import os
 from tabulate import tabulate
 from src.recommender import load_songs, recommend_songs, SCORING_MODES
+from src.guardrails import validate_user_prefs, check_output_confidence
 
 
 PROFILES = {
@@ -39,7 +40,7 @@ PROFILES = {
         "avoid_explicit": False,
         "prefers_instrumental": False,
     },
-    "Edge Case — Conflicting Prefs": {
+    "Edge Case - Conflicting Prefs": {
         "genre": "ambient",
         "mood": "hype",
         "energy": 0.92,
@@ -59,14 +60,26 @@ def print_profile_results(name: str, prefs: dict, songs: list, mode: str) -> Non
     print(f"  Mode    : {mode}")
     print(separator)
     print(f"  genre={prefs['genre']}  mood={prefs['mood']}  energy={prefs['energy']}")
-    print(f"  detailed_mood={prefs.get('detailed_mood','')}  "
-          f"decade={prefs.get('preferred_decade','')}  "
-          f"avoid_explicit={prefs.get('avoid_explicit',False)}")
+    print(
+        f"  detailed_mood={prefs.get('detailed_mood', '')}  "
+        f"decade={prefs.get('preferred_decade', '')}  "
+        f"avoid_explicit={prefs.get('avoid_explicit', False)}"
+    )
     print(f"{separator}\n")
+
+    # Guardrail: validate inputs before scoring
+    errors = validate_user_prefs(prefs)
+    if errors:
+        for err in errors:
+            print(f"  [GUARDRAIL] Input warning: {err}")
 
     recommendations = recommend_songs(prefs, songs, k=5, mode=mode, diversity=True)
 
-    # Challenge 4: tabulate output
+    # Guardrail: check output confidence
+    warning = check_output_confidence(recommendations)
+    if warning:
+        print(f"  [GUARDRAIL] {warning}\n")
+
     table_rows = []
     for i, (song, score, explanation) in enumerate(recommendations, start=1):
         table_rows.append([
@@ -82,8 +95,10 @@ def print_profile_results(name: str, prefs: dict, songs: list, mode: str) -> Non
         ])
 
     headers = ["#", "Title", "Artist", "Genre", "Mood", "Energy", "Pop", "Score", "Why"]
-    print(tabulate(table_rows, headers=headers, tablefmt="simple",
-                   maxcolwidths=[3, 22, 16, 10, 8, 6, 4, 6, 55]))
+    print(tabulate(
+        table_rows, headers=headers, tablefmt="simple",
+        maxcolwidths=[3, 22, 16, 10, 8, 6, 4, 6, 55],
+    ))
     print()
 
 
@@ -93,7 +108,6 @@ def main() -> None:
 
     songs = load_songs(csv_path)
 
-    # Run each profile in all 3 scoring modes to show the difference
     for name, prefs in PROFILES.items():
         for mode in SCORING_MODES:
             print_profile_results(name, prefs, songs, mode)
