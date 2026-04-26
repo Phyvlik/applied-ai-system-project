@@ -218,33 +218,36 @@ preferences well.
 ## Design Decisions
 
 **Why content-based filtering?**
-The original project goal was to show how recommendation algorithms work transparently.
-Content-based filtering makes every scoring step inspectable: you can see exactly why a
-song scored 4.5 instead of 3.2. Collaborative filtering (used by Spotify) would require
-real listening data, which the project does not have.
+I chose content-based filtering because I wanted every recommendation to be explainable.
+You can look at any result and see exactly why it scored 4.5 instead of 3.2. Collaborative
+filtering (what Spotify actually uses) would have required real listening history data that
+I do not have, and a black-box model would have hidden the reasoning I was trying to expose.
 
 **Why weighted scoring instead of a machine learning model?**
-A trained model would require a labeled dataset of user preferences and song ratings.
-For an 18-song catalog, a weighted formula is more appropriate and easier to reason about.
-The trade-off is that the weights are static judgment calls, not learned from data.
+With only 18 songs in the catalog, training a model would have been overkill and the weights
+would have been meaningless. A hand-tuned formula is honest about what it is: a set of
+judgment calls. The trade-off is that those weights never update, so the system cannot
+improve on its own. That felt like an acceptable limitation for this scope.
 
 **Why three scoring modes?**
-Users listen to music for different reasons. Someone choosing workout music cares most
-about energy. Someone choosing background music for studying cares most about mood. The
-three modes (genre-first, mood-first, energy-focused) let the system serve different
-use cases without changing the underlying catalog.
+I realized during testing that the "right" recommendation changes based on context. The same
+person wants different music at the gym versus while studying. Rather than hardcoding one
+weight set, I built genre-first, mood-first, and energy-focused modes so the system can
+serve different situations without rebuilding the whole catalog.
 
-**Why guardrails instead of crashing on bad input?**
-Silent failures are harder to debug than visible warnings. Printing a guardrail message
-when energy is 1.8 is more useful than returning wrong results with no explanation.
-The confidence check at output serves the same purpose: if the top score is below 3.0,
-the user should know the results are unreliable before acting on them.
+**Why guardrails instead of just letting bad input through?**
+Early in testing I noticed that passing an unknown genre returned results with no warning,
+which made the output look correct even when it was not. I added the input guardrail so
+those failures are visible. The confidence check at output is the same idea: a score below
+3.0 means the catalog probably does not have what the user wants, and they deserve to know
+that rather than receiving misleading top-5 results.
 
-**Trade-off: genre weight dominance**
-Setting genre weight to 3.0 makes the system intuitive for most users but breaks badly
-when someone's preferred genre is rare in the catalog. A lower weight reduces the
-filter-bubble effect but makes results feel less relevant for common genres. There is
-no single correct weight; it depends on the catalog size and user base.
+**The hardest trade-off: genre weight dominance**
+Setting genre to 3.0 felt right for most users, but it completely breaks the edge case
+profile. I experimented with lowering it to 1.5, which reduced the filter bubble but made
+common-genre results feel random. I kept 3.0 and documented the failure instead of hiding
+it, because I think being honest about where a system breaks is more useful than pretending
+it does not.
 
 ---
 
@@ -252,46 +255,52 @@ no single correct weight; it depends on the catalog size and user base.
 
 **What worked:**
 
-- Content-based scoring produces consistent, explainable results. The evaluation harness
-  confirms 8/8 test cases pass, including genre matching, diversity enforcement, and
-  guardrail triggering.
-- The diversity penalty works as intended: no artist appears more than once and no genre
-  appears more than twice in the top 5.
-- The input guardrail correctly catches unknown genres (e.g., "polka"), unknown moods
-  (e.g., "melancholy"), and energy values outside 0.0 to 1.0.
-- The confidence check correctly triggers for the edge case profile where the top score
-  falls below the threshold.
+The evaluation harness came back 8/8 passing on the first run, which honestly surprised me.
+Genre matching, diversity enforcement, and guardrail triggering all behaved exactly as
+intended. The diversity penalty is probably the piece I am most proud of: no artist repeats
+in the top 5, and no genre appears more than twice, even when the scoring would naturally
+cluster results. The unit tests for guardrails cover edge cases I expected to be tricky,
+like empty strings and multiple simultaneous errors, and all 9 pass cleanly.
 
 **What did not work as expected:**
 
-- The edge case profile (ambient genre, hype mood, energy 0.92) exposes a fundamental
-  flaw: the genre weight overrides energy and mood when a rare genre matches. The system
-  returns a quiet ambient track for a user who wants loud, hype music.
-- The Intense Rock profile surfaces Gym Hero (pop) above Iron Curtain (metal) because
-  valence proximity favors the pop track. A rock user expects metal before pop.
-- With only 18 songs, genres like blues, classical, and folk produce one real match and
-  four filler results regardless of how well the scoring logic works.
+The edge case profile was deliberately adversarial (ambient genre, hype mood, energy 0.92)
+and it exposed the system's biggest flaw in a pretty clear way. The top result was
+Spacewalk Thoughts with energy 0.28, the complete opposite of what the user asked for,
+because the ambient genre match (3.0 points) drowned out everything else. I also did not
+expect the Intense Rock profile to surface a pop song (Gym Hero) above a metal song (Iron
+Curtain). It happened because valence proximity favored the pop track, which feels wrong
+for a rock user even though the math was correct.
 
-**What was learned:**
+**What I learned:**
 
-The biggest lesson is that algorithm correctness and result quality are not the same
-thing. The scoring math is always correct; the results are only good when the weights
-and catalog match the user's actual situation. Testing revealed this gap clearly.
+The gap between "the algorithm is correct" and "the results are good" is much larger than
+I expected. I spent most of my time on the scoring logic and then discovered during testing
+that the weights and catalog shape matter more than the formula itself. Writing the test
+harness forced me to think about what the system should do, not just what it does, which
+is a different and harder question.
 
 ---
 
 ## Reflection
 
-VibeFinder 2.0 showed that extending a prototype into a reliable system requires
-more engineering work than the original feature itself. The guardrails, test harness,
-and evaluation script took as much thought as the scoring algorithm, and they are
-what make the system trustworthy rather than just functional.
+Going from VibeFinder 1.0 to 2.0 took longer than I expected, and most of that time
+was not spent on new features. It was spent on the guardrails, the test harness, and
+making sure the existing system actually behaved the way I thought it did. That was
+a surprise. I assumed the hard part was building the recommender, but the hard part
+turned out to be verifying it.
 
-The most important AI insight from this project: confidence is not the same as
-correctness. The edge case profile returned results with high internal consistency
-but completely wrong behavior for the user. Real recommendation systems face this
-same problem at scale. Adding reliability mechanisms - guardrails, evaluation loops,
-and structured testing - is what separates a prototype from a production system.
+The thing that stuck with me most was the edge case experiment. The system confidently
+returned Spacewalk Thoughts for a user who wanted high-energy hype music, and it did
+so with a clean score and a valid explanation. Nothing in the output looked wrong. That
+is what makes AI systems risky: they do not fail loudly, they fail quietly while still
+looking like they are working. Adding the confidence guardrail was my attempt to at
+least surface that uncertainty instead of hiding it.
+
+If I kept building this out, I would expand the catalog significantly and add a simple
+feedback loop where the user can rate results. Even a thumbs up or down on each song
+would give the system something to learn from, which would turn it from a static
+formula into something closer to how real recommendation engines evolve over time.
 
 For a full breakdown of biases, evaluation results, and AI collaboration notes, see
 the [Model Card](model_card.md).
