@@ -5,8 +5,9 @@ Run with: python -m src.main
 
 import os
 from tabulate import tabulate
-from src.recommender import load_songs, recommend_songs, SCORING_MODES
+from src.recommender import recommend_songs, SCORING_MODES
 from src.guardrails import validate_user_prefs, check_output_confidence
+from src.retriever import retrieve_from_sources
 
 
 PROFILES = {
@@ -104,9 +105,10 @@ def print_profile_results(name: str, prefs: dict, songs: list, mode: str) -> Non
 
 def main() -> None:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    csv_path = os.path.join(base_dir, "data", "songs.csv")
+    source_1 = os.path.join(base_dir, "data", "songs.csv")
+    source_2 = os.path.join(base_dir, "data", "extended_songs.csv")
 
-    songs = load_songs(csv_path)
+    songs = retrieve_from_sources([source_1, source_2])
 
     for name, prefs in PROFILES.items():
         for mode in SCORING_MODES:
