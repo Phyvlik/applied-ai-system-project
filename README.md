@@ -330,6 +330,45 @@ applied-ai-system-project/
 
 ---
 
+## Reliability and Guardrail Behavior
+
+The system includes three reliability mechanisms. Here is what each one looks like when it fires.
+
+**Input guardrail: unknown genre**
+```
+[GUARDRAIL] Input warning: Unknown genre 'polka'. Known genres: ambient, blues,
+classical, country, edm, folk, hip-hop, indie pop, jazz, lofi, metal, pop, reggae,
+rock, synthwave
+```
+
+**Input guardrail: energy out of range**
+```
+[GUARDRAIL] Input warning: Energy must be between 0.0 and 1.0, got 1.8
+```
+
+**Output guardrail: low confidence score**
+```
+[GUARDRAIL] Low confidence: top score is 1.85 (threshold 3.0).
+Preferences may not match the catalog well.
+```
+This fires when no song in the catalog closely matches the user's preferences. The
+recommendations still display, but the user is warned the results may not be meaningful.
+
+**Evaluation harness summary (run `python -m tests.test_harness`):**
+```
+Results: 8/8 passed (100% pass rate)
+```
+8 predefined test cases cover genre matching, guardrail triggering, result count,
+and diversity enforcement. All pass against the current catalog and scoring logic.
+
+**Unit test summary (run `pytest`):**
+```
+11 passed in 0.08s
+```
+9 tests cover guardrail edge cases. 2 tests cover core recommender behavior.
+
+---
+
 ## Limitations
 
 - Catalog of 18 songs means rare-genre users get poor results regardless of scoring quality
