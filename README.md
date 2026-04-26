@@ -1,5 +1,14 @@
 # VibeFinder 2.0 - Applied AI Music Recommender
 
+## Demo Walkthrough
+
+**[Add Loom video link here after recording]**
+
+The walkthrough shows: end-to-end run with 3 profiles, guardrail warnings firing on bad
+input, evaluation harness running 8/8 tests, and clear output for each case.
+
+---
+
 ## Base Project
 
 This project extends **VibeFinder 1.0**, originally built for Module 3 of the AI110 course
@@ -378,3 +387,19 @@ and diversity enforcement. All pass against the current catalog and scoring logi
 - Valence scoring can produce counter-intuitive results when genre and mood do not match
 
 For a full breakdown, see the [Model Card](model_card.md).
+
+---
+
+## Portfolio Reflection
+
+This project shows that I can take a working prototype and make it more reliable and
+trustworthy, not just more feature-rich. The original VibeFinder scored songs and
+returned results. This version also validates what goes in, checks whether the output
+is worth trusting, and proves through automated tests that the behavior is consistent.
+That shift from "it works" to "I can prove it works" is something I want to carry into
+every AI project I build. I also learned that the hardest problems in AI systems are
+not the algorithms themselves but the edge cases, the biases, and the gap between what
+the system outputs and what it should output. Being honest about those gaps, in the
+model card and in the code, is part of what it means to build responsibly.
+
+**GitHub:** https://github.com/Phyvlik/applied-ai-system-project
