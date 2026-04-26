@@ -5,7 +5,8 @@
 **[Add Loom video link here after recording]**
 
 The walkthrough shows: end-to-end run with 3 profiles, guardrail warnings firing on bad
-input, evaluation harness running 8/8 tests, and clear output for each case.
+input, evaluation harness running 8/8 tests, agentic workflow with observable steps, and
+persona specialization showing ranking changes from baseline.
 
 ---
 
@@ -316,25 +317,105 @@ the [Model Card](model_card.md).
 
 ---
 
+## Stretch Features
+
+### RAG - Multi-Source Retrieval
+
+`src/retriever.py` loads songs from multiple catalog CSV files and merges them before
+scoring. The original 18-song catalog is Source 1. `data/extended_songs.csv` adds 10 more
+songs targeting underserved genres (blues, classical, folk, jazz, metal) as Source 2.
+
+**Impact on output quality:**
+```
+Source 1 only  - Jazz user: 1 jazz song in top 5
+Source 1 + 2   - Jazz user: 2 jazz songs in top 5  (+1 from extended catalog)
+```
+
+Run: `python -m src.agent_demo` (Stretch 1 section)
+
+---
+
+### Agentic Workflow
+
+`src/agent.py` implements a five-step decision-making pipeline. Each step prints its
+reasoning so intermediate decisions are fully observable.
+
+```
+Step 1: Analyze profile  - detect niche genres, conflicting signals
+Step 2: Select strategy  - choose scoring mode based on analysis
+Step 3: Run              - execute recommendations with guardrails
+Step 4: Evaluate         - check confidence and genre diversity
+Step 5: Adapt if needed  - retry with different mode if low confidence
+```
+
+**Example output (Ambient + Hype profile):**
+```
+[AGENT] Step 1: genre='ambient' (1 song in catalog)
+        [!] low genre coverage (1 song(s) for 'ambient')
+[AGENT] Step 2: Mode selected: mood-first | Reason: genre coverage too low
+[AGENT] Step 4: Top score: 5.71 | Genre diversity: 5 genres in top 5
+        Verdict: high confidence, results accepted.
+```
+
+Run: `python -m src.agent_demo` (Stretch 2 section)
+
+---
+
+### Fine-Tuning via Persona Specialization
+
+`src/persona.py` defines five reference personas, each with specialized scoring weights
+derived from example user profiles (few-shot style).
+
+| Persona | Listening Context | Key Weight Shift |
+|---|---|---|
+| Gym Warrior | High-intensity workout | Energy x3.5 |
+| Study Focus | Deep work background | Acoustic x1.5, Energy x2.5 |
+| Late Night Drive | Atmospheric, cinematic | Mood x3.0, Detailed mood x2.0 |
+| Acoustic Cafe | Cozy organic sound | Acoustic x3.0 |
+| Party Mode | Social, high energy | Popularity x1.0, Energy x2.5 |
+
+**Measurable difference from baseline (genre-first):**
+```
+Profile: pop / moody / energy 0.6
+  Baseline #1: Sunrise City (pop)         <- genre match wins
+  Persona #1:  Blue Velvet Evening (jazz) <- mood weight takes over
+  2/3 positions changed
+
+Profile: pop / happy / energy 0.4
+  Baseline #1: Sunrise City (pop)
+  Persona #1:  Campfire Letters (folk)    <- acoustic + calm energy wins
+  3/3 positions changed
+```
+
+Run: `python -m src.agent_demo` (Stretch 3 section)
+
+---
+
 ## File Structure
 
 ```
 applied-ai-system-project/
     src/
-        main.py            - CLI runner, integrates all components
+        main.py            - CLI runner with multi-source retrieval and guardrails
         recommender.py     - Content-based scoring and diversity filter
         guardrails.py      - Input validation and output confidence check
+        retriever.py       - Multi-source catalog loader (RAG)
+        agent.py           - Five-step recommendation agent (Agentic)
+        persona.py         - Persona detection and specialized weights (Fine-Tuning)
+        agent_demo.py      - Demonstrates all three stretch features
     tests/
         test_recommender.py  - Unit tests for scoring logic
         test_guardrails.py   - Unit tests for guardrails
         test_harness.py      - Evaluation harness with 8 predefined test cases
     data/
-        songs.csv          - 18-song catalog with 14 attributes per song
+        songs.csv            - Original 18-song catalog
+        extended_songs.csv   - Extended catalog with 10 songs for niche genres
     assets/
-        architecture.md    - Mermaid source for the system diagram
-        phase4_*.png       - Terminal output screenshots
+        architecture.md      - Mermaid source for the system diagram
+        phase4_*.png         - Terminal output screenshots
     model_card.md          - Algorithm summary, biases, and AI collaboration notes
     requirements.txt       - Python dependencies
+    conftest.py            - Pytest path configuration
 ```
 
 ---
