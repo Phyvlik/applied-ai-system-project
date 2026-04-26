@@ -6,6 +6,60 @@ VibeFinder 1.0 is a content-based music recommender built in Python. It takes a 
 
 ---
 
+## System Architecture
+
+```mermaid
+flowchart TD
+    subgraph INPUT["Input Layer"]
+        A["User Profile\ngenre, mood, energy\nlikes_acoustic, decade, detailed_mood"]
+    end
+
+    subgraph GUARD_IN["Guardrails: Input Validator\nguardrails.py"]
+        B{"Valid inputs?"}
+        B1["Warning printed to terminal\n(unknown genre, mood, or out-of-range energy)"]
+    end
+
+    subgraph DATA["Data Layer"]
+        C[("Song Catalog\ndata/songs.csv\n18 songs, 14 attributes each")]
+    end
+
+    subgraph CORE["Core AI: Content-Based Scorer\nrecommender.py"]
+        D["score_song()\nweighted scoring per mode\ngenre-first / mood-first / energy-focused"]
+        E["apply_diversity_penalty()\nmax 1 song per artist\nmax 2 songs per genre"]
+    end
+
+    subgraph GUARD_OUT["Guardrails: Confidence Check\nguardrails.py"]
+        F{"Top score >= 3.0?"}
+        F1["Low Confidence Warning\npreferences may not match catalog"]
+    end
+
+    subgraph OUTPUT["Output Layer"]
+        G["Tabulate Table\ntop 5 recommendations\nwith score and Why explanation"]
+    end
+
+    subgraph TESTING["Testing and Evaluation Layer"]
+        H["Unit Tests\ntest_recommender.py + test_guardrails.py\n11 tests"]
+        I["Evaluation Harness\ntest_harness.py\n8 predefined cases / pass-fail report"]
+    end
+
+    A --> B
+    B -->|invalid| B1
+    B -->|valid| C
+    C --> D
+    D --> E
+    E --> F
+    F -->|score ok| G
+    F -->|score low| F1
+    F1 --> G
+    H -. "verifies scoring and guardrail logic" .-> D
+    H -. "verifies guardrail logic" .-> B
+    I -. "evaluates end-to-end behavior" .-> G
+```
+
+> Diagram source also saved in [assets/architecture.md](assets/architecture.md).
+
+---
+
 ## How The System Works
 
 Real-world platforms like Spotify and YouTube predict what you'll enjoy by analyzing patterns. They either look at what songs you and similar users have listened to (collaborative filtering), or they look at the attributes of the songs themselves (content-based filtering). At scale, these systems process millions of data points per second, combining listening history, skip behavior, time of day, and audio features to rank an enormous catalog down to a short list. This simulation focuses on the content-based approach: it compares the attributes of each song directly against a user's taste profile and assigns a relevance score, then surfaces the top matches.
