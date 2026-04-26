@@ -1,99 +1,213 @@
-# Model Card: Music Recommender Simulation
+# Model Card: VibeFinder 2.0
 
 ## 1. Model Name
 
-**VibeFinder 1.0**
+**VibeFinder 2.0**
+
+Base project: VibeFinder 1.0, built for Module 3 of AI110.
 
 ---
 
-## 2. Goal / Task
+## 2. Goal and Task
 
-VibeFinder 1.0 tries to predict which songs from a small catalog a user will enjoy based on their stated taste preferences. Given a user's favorite genre, mood, target energy level, and acoustic preference, it scores every song and returns the top 5 most relevant matches. It is a simulation of how content-based filtering works, not a production recommendation engine.
+VibeFinder 2.0 takes a user's stated music preferences (genre, mood, energy level, acoustic
+taste, decade, and detailed mood) and returns the top 5 most relevant songs from an 18-song
+catalog. It uses a weighted content-based filtering algorithm, applies a diversity penalty
+to avoid repetitive results, and runs input and output guardrails to catch bad data and
+low-confidence results. An automated evaluation harness verifies consistent behavior across
+8 predefined test cases.
+
+This is a simulation of how content-based recommendation systems work, not a production engine.
 
 ---
 
 ## 3. Data Used
 
-- **Dataset:** `data/songs.csv` with 18 songs (expanded from the original 10)
-- **Features per song:** genre, mood, energy (0.0 to 1.0), tempo_bpm, valence (0.0 to 1.0), danceability (0.0 to 1.0), acousticness (0.0 to 1.0)
-- **Genres covered:** pop, lofi, rock, ambient, jazz, synthwave, indie pop, country, hip-hop, classical, metal, reggae, blues, edm, folk
+- **Dataset:** `data/songs.csv` with 18 songs
+- **Features per song:** genre, mood, energy, tempo_bpm, valence, danceability, acousticness,
+  popularity, release_decade, detailed_mood, explicit, instrumental
+- **Genres covered:** pop, lofi, rock, ambient, jazz, synthwave, indie pop, country, hip-hop,
+  classical, metal, reggae, blues, edm, folk
 - **Moods covered:** happy, chill, intense, relaxed, moody, focused, hype
-- **Limits:** Several genres (blues, classical, folk, metal) have only one song each. The catalog does not represent global or non-Western music. There is no "sad" mood in the dataset. All data was hand-crafted for the simulation and does not reflect real listening behavior.
+- **Limits:** Several genres have only one song each. The catalog does not represent global
+  or non-Western music. There is no "sad" mood. All data was hand-crafted for the simulation
+  and does not reflect real listening behavior.
 
 ---
 
 ## 4. Algorithm Summary
 
-For every song in the catalog, the system calculates a score by asking five questions:
+For every song in the catalog, the system calculates a score across up to ten signals:
 
-1. **Does the genre match?** If yes, the song earns 3.0 points. Genre is the strongest signal of musical taste.
-2. **Does the mood match?** If yes, it earns 2.0 points. Mood reflects what the user wants to feel right now.
-3. **How close is the energy?** A song with energy very close to the user's target earns up to 1.5 points. The farther away it is, the fewer points it gets.
-4. **How close is the valence?** Valence measures how musically positive a song feels. Closeness to a default target of 0.7 earns up to 1.0 points.
-5. **Acoustic bonus:** If the user likes acoustic music and the song is highly acoustic, it earns an extra 0.5 points.
+1. **Genre match** - earns up to 3.0 points depending on scoring mode
+2. **Mood match** - earns up to 3.0 points depending on scoring mode
+3. **Energy proximity** - closer to target earns more, up to 1.5 points
+4. **Valence proximity** - closeness to a 0.7 default earns up to 1.0 point
+5. **Acoustic bonus** - +0.5 if user likes acoustic and song has high acousticness
+6. **Popularity bonus** - +0.3 for songs rated 75 or above
+7. **Decade match** - +0.3 if song release decade matches user preference
+8. **Detailed mood match** - up to 1.5 points for fine-grained mood tags
+9. **Explicit penalty** - -2.0 if user has avoid_explicit=True and song is explicit
+10. **Instrumental bonus** - +0.5 for users who prefer instrumental tracks
 
-All songs are ranked from highest to lowest score and the top 5 are returned.
-
----
-
-## 5. Observed Behavior and Biases
-
-**Genre dominance (filter bubble):** The genre weight (3.0) is high enough that a song with a perfect mood and energy match in the wrong genre almost never beats a mediocre same-genre song. Users get trapped in a genre bubble and the system rarely surfaces something unexpected.
-
-**Rare genre failure:** Users who prefer blues, classical, or folk only get one relevant result. The other four recommendations are unrelated songs that happen to score well on energy and valence proximity, not true matches.
-
-**Conflicting preferences break the system:** The edge case profile (ambient genre, hype mood, high energy 0.92) returned Spacewalk Thoughts as the top result even though it has energy 0.28, purely because of the genre match. The system cannot handle contradictory user inputs. It just weighs the categories and picks a winner, even when the winner makes no sense.
-
-**No "sad" mood:** Because the dataset lacks a "sad" mood entry, any user who wants melancholic music gets zero mood-match points across every song. The system effectively ignores their emotional preference entirely.
-
-**Valence surprises:** Iron Curtain (metal, intense) ranked below Gym Hero (pop, intense) for the Intense Rock profile because Gym Hero's valence (0.77) is closer to the 0.7 default than Iron Curtain's (0.21). A metal song being beaten by a pop song for a rock user is a clear failure of the valence scoring logic.
+Three scoring modes shift which signal is weighted highest: genre-first, mood-first,
+and energy-focused. A diversity filter then limits the top 5 to one song per artist
+and two per genre before results are displayed.
 
 ---
 
-## 6. Evaluation Process
+## 5. Limitations and Biases
 
-Four user profiles were tested:
+**Genre dominance (filter bubble):** The genre weight is high enough that a song with a
+perfect mood and energy match in the wrong genre almost never beats a mediocre same-genre
+song. Users get locked into a genre bubble and the system rarely surfaces anything outside
+their stated preference.
 
-- **High-Energy Pop** (pop / happy / 0.9 energy): Results felt correct. Sunrise City ranked first and matched genre, mood, and energy. Gym Hero ranked second with genre but the wrong mood, which made sense given the score gap.
-- **Chill Lofi** (lofi / chill / 0.38 energy / likes_acoustic=True): Best-performing profile. Top two songs (Library Rain, Midnight Coding) scored nearly identically around 7.8 and both felt like the right recommendation. Acoustic bonus worked as intended.
-- **Intense Rock** (rock / intense / 0.95 energy): Only one rock song in the catalog (Storm Runner), so first place was obvious. The surprise was Iron Curtain (metal) ranking below Gym Hero (pop) at third place, which exposed the valence scoring flaw.
-- **Edge Case** (ambient / hype / 0.92 energy / likes_acoustic=True): A deliberate contradiction. Revealed that genre weight dominates all other signals when a rare genre matches, even when every other attribute is wrong.
+**Rare genre failure:** Users who prefer blues, classical, or folk only get one relevant
+result. The other four recommendations are unrelated songs that happen to score well on
+energy and valence proximity, not true matches.
 
-**Weight experiment:** Halved the genre weight (3.0 to 1.5) and doubled energy weight (1.5 to 3.0). For the pop/happy profile, Rooftop Lights jumped from third to second because its energy was closer to the target. Confirmed the system is sensitive to weight choices and there is no single correct weighting.
+**Conflicting preferences break the system:** The edge case profile (ambient genre, hype
+mood, high energy 0.92) returned Spacewalk Thoughts as the top result even though it has
+energy 0.28, purely because of the genre match. The system cannot handle contradictory
+inputs. It weighs the signals and picks a winner, even when that winner makes no sense.
+
+**No "sad" mood:** Because the dataset lacks a sad mood entry, any user who wants
+melancholic music gets zero mood-match points across every song. The system silently
+ignores their emotional preference.
+
+**Valence surprises:** Iron Curtain (metal, intense) ranked below Gym Hero (pop, intense)
+for the Intense Rock profile because Gym Hero's valence is closer to the 0.7 default.
+A metal song losing to a pop song for a rock user is a clear failure of the valence logic.
+
+**Catalog imbalance reflects real bias:** With only 18 songs, pop and lofi users get
+strong results while niche genre users do not. This mirrors how real recommendation
+systems underserve niche and non-Western audiences when training data is skewed toward
+mainstream content.
 
 ---
 
-## 7. Intended Use and Non-Intended Use
+## 6. Could This System Be Misused?
+
+A music recommender seems low-stakes, but the pattern this system uses can be applied to
+higher-stakes domains, which creates real risks.
+
+**Filter bubble amplification:** Any system that reinforces a user's stated preferences
+without ever challenging them can deepen echo chambers over time. In music this means
+never discovering new genres. In news or social media the same algorithm design contributes
+to radicalization and misinformation spread.
+
+**Proxy discrimination:** If the catalog were a job applicant pool and the user profile
+were a hiring manager's preferences, this exact algorithm would encode and amplify bias.
+A "genre match" becomes a demographic match. The system would confidently surface
+candidates that look like previous hires and penalize everyone else.
+
+**False confidence:** The system displays scores and explanations that look authoritative.
+A user might trust a 6.7-scored recommendation without realizing the score is based on
+five simple rules applied to hand-crafted data.
+
+**How I would prevent misuse:**
+- Display a clear disclaimer that results reflect the catalog and weights, not objective quality
+- The confidence guardrail already warns users when scores are low, which is one honest signal
+- Any real deployment would need a bias audit of the catalog before launch
+- I would never use this scoring pattern in hiring, lending, or any domain with legal accountability
+
+---
+
+## 7. What Surprised Me During Testing
+
+I expected the edge case profile to fail in an obvious way, like returning completely
+unrelated songs. What surprised me was that it failed confidently. Spacewalk Thoughts had
+a clean score and a readable explanation. Nothing in the output looked wrong unless you
+already knew the user wanted high-energy hype music. That gap between looking correct and
+being correct is what the confidence guardrail is meant to address, but it only catches
+the worst cases. A score of 4.5 still feels trustworthy even when the result is bad.
+
+The other surprise was the Intense Rock profile. I assumed a rock user asking for intense
+music would get metal in the top three. Instead, Gym Hero (a pop song) ranked above Iron
+Curtain (metal) because valence proximity favored the pop track. I had not thought through
+how valence interacts with genre until I saw that result. It changed how I think about
+feature weighting: adding more features does not always improve results. Sometimes it
+introduces unexpected interactions that are harder to control than the original system.
+
+---
+
+## 8. AI Collaboration
+
+I used AI assistance throughout this project for design, debugging, and decision-making.
+
+**One instance where AI gave a helpful suggestion:**
+
+When I was thinking about the reliability component for this version, AI suggested
+structuring the guardrails as two separate functions: one for input validation before
+scoring runs, and one for output confidence after scoring completes. I had originally
+been thinking of them as one block at the end. Splitting them made the logic cleaner
+and made the tests easier to write, because each function has a single responsibility.
+That suggestion improved the design in a way I would not have landed on as quickly alone.
+
+**One instance where AI's suggestion was flawed:**
+
+Early on, AI suggested adding the Claude API to generate natural language explanations
+for the recommendations, framing it as the "substantial new AI feature" the rubric asked
+for. That suggestion was technically interesting but wrong for this project. It would
+have required an API key and spending money, the rubric does not require a paid API,
+and the guardrails plus evaluation harness already satisfy the reliability harness
+requirement without any external dependency. Following that suggestion would have added
+complexity, cost, and a dependency that could break the demo if the key expired. I
+pushed back and we scoped it out, which was the right call.
+
+---
+
+## 9. Evaluation Results
+
+**Unit tests:** 11/11 passed
+- test_recommender.py: 2 tests covering core scoring and explanation output
+- test_guardrails.py: 9 tests covering valid inputs, each error type, multiple simultaneous
+  errors, empty fields, and both confidence thresholds
+
+**Evaluation harness:** 8/8 passed (100% pass rate)
+- Pop/Happy genre match: PASS
+- Lofi/Chill genre match: PASS
+- Rock/Intense genre match: PASS
+- EDM/Hype genre match: PASS
+- Unknown genre triggers guardrail: PASS
+- Out-of-range energy triggers guardrail: PASS
+- Valid prefs return 5 results: PASS
+- Diversity constraint enforced: PASS
+
+**Four user profiles tested manually:**
+- High-Energy Pop: results felt correct, Sunrise City ranked first
+- Chill Lofi: best-performing profile, top two results both felt like the right call
+- Intense Rock: exposed the valence flaw (Gym Hero above Iron Curtain)
+- Edge Case: exposed genre weight dominance (quiet ambient track ranked first for hype user)
+
+---
+
+## 10. Intended and Non-Intended Use
 
 **Intended use:**
-- Classroom exploration of how content-based filtering works
-- Learning how weighted scoring turns structured data into ranked recommendations
-- Demonstrating algorithmic bias and filter bubbles in a simple, transparent system
+- Learning how content-based filtering and weighted scoring work
+- Demonstrating algorithmic bias and filter bubbles in a transparent, inspectable system
+- Classroom exploration of recommendation system design and trade-offs
 
 **Not intended for:**
-- Real music recommendation in a product or app
+- Real music recommendation in a product
 - Serving users with complex, evolving, or contradictory tastes
-- Replacing systems that learn from actual listening behavior
 - Any catalog larger than a few dozen songs without significant redesign
+- Any domain involving consequential decisions (hiring, lending, healthcare)
 
 ---
 
-## 8. Ideas for Improvement
+## 11. Ideas for Improvement
 
-1. **Expand the catalog and balance genres.** Adding 5+ songs per genre would make recommendations meaningful for users outside pop and lofi. Right now, rare-genre users get poor results no matter how good the scoring logic is.
+1. **Expand the catalog and balance genres.** Adding 5+ songs per genre would make
+   recommendations meaningful for niche-genre users.
 
-2. **Add mood vocabulary.** Including moods like "sad," "romantic," and "nostalgic" would let the system serve a much wider range of emotional states instead of silently ignoring them.
+2. **Add a feedback loop.** Even a simple thumbs up or down that adjusts weights over
+   time would turn this into something that actually learns from behavior.
 
-3. **Cap genre dominance with a diversity rule.** Limiting the genre weight or enforcing a maximum of one song per artist in the top 5 would reduce the filter bubble effect and surface more varied results.
+3. **Add a "sad" mood and broader mood vocabulary.** The current mood set is too narrow
+   and silently ignores large parts of how people actually want to feel when listening.
 
----
-
-## 9. Personal Reflection
-
-The biggest learning moment in this project was the edge case experiment. I expected the adversarial profile (ambient, hype, high energy) to produce a weird mix of songs. Instead it confidently returned a quiet ambient track as the top recommendation because of the genre match. That moment made it clear that confidence and correctness are not the same thing in an algorithm. The system was doing exactly what it was told. It just did not know that the user's preferences were contradictory.
-
-Using AI tools helped most during the design phase, working through the scoring logic, thinking about weights, and identifying what kinds of bias might appear before writing a single line of code. The part that required more careful checking was the weight experiment. It was easy to make a change and see different numbers, but understanding why Rooftop Lights jumped above Gym Hero required going back to the math and tracing the scores manually.
-
-The most surprising thing about the project was how the results can feel like real recommendations even though the system is just adding up five numbers. For the Chill Lofi profile, the top two results genuinely felt like what you would want to hear in a library. That feeling comes entirely from the weights being reasonable, not from any deep understanding of music. It is a good reminder that a lot of what makes AI feel intelligent is careful design of simple rules, not magic.
-
-If I extended this project, I would add a feedback loop. Even a simple thumbs up or thumbs down on each recommendation that adjusts the user's profile weights over time would turn a static content-based filter into something that actually learns, which is closer to how Spotify's Taste Profile works in practice.
+4. **Cap genre weight or add a surprise factor.** A small probability of surfacing a
+   song from outside the user's genre would reduce filter bubble effects.
