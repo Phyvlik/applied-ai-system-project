@@ -2,7 +2,7 @@
 
 ## Demo Walkthrough
 
-**[Add Loom video link here after recording]**
+**[Demo Walkthrough](https://www.loom.com/share/b6fe511ab9ec48b280b885a08cc349c5)**
 
 The walkthrough shows: end-to-end run with 3 profiles, guardrail warnings firing on bad
 input, evaluation harness running 8/8 tests, agentic workflow with observable steps, and
