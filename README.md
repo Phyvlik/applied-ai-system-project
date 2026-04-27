@@ -200,7 +200,31 @@ above other lofi tracks. Scores cluster tightly around 6.9 to 7.8.
 
 ---
 
-### Profile 3: Edge Case - Conflicting Preferences
+### Profile 3: Intense Rock
+
+**Input:**
+```python
+{
+    "genre": "rock",
+    "mood": "intense",
+    "energy": 0.95,
+    "likes_acoustic": False,
+    "detailed_mood": "aggressive",
+    "preferred_decade": "2010s"
+}
+```
+
+**Output (genre-first mode):**
+
+![Intense Rock results](assets/phase4_profile3_intenserock.png)
+
+Top result is Iron Curtain (metal, intense, energy 0.96) with a high score driven by mood
+and energy alignment. The diversity filter keeps the top 5 spread across rock and metal
+rather than repeating the same artist.
+
+---
+
+### Profile 4: Edge Case - Conflicting Preferences
 
 **Input:**
 ```python
@@ -216,6 +240,7 @@ above other lofi tracks. Scores cluster tightly around 6.9 to 7.8.
 **Output (genre-first mode):**
 
 ![Edge case results](assets/phase4_profile4_edgecase.png)
+
 
 Guardrail output: no input errors (ambient and hype are both valid), but the top result
 is Spacewalk Thoughts with energy 0.28 - the opposite of the 0.92 target. This happens
